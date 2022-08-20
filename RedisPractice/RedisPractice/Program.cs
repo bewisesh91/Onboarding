@@ -1,88 +1,88 @@
 ﻿using StackExchange.Redis;
 
-ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("127.0.0.1:6379");
-IDatabase db = redis.GetDatabase(1);
+// ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("127.0.0.1:6379");
+// IDatabase db = redis.GetDatabase(1);
 
-var subscriber = redis.GetSubscriber();
+// var subscriber = redis.GetSubscriber();
 
-subscriber.Subscribe("subscribeTest", (channel, message) =>
+// subscriber.Subscribe("subscribeTest", (channel, message) =>
+// {
+//     Console.WriteLine((string)message);
+// });
+
+// subscriber.Publish("subscribeTest", "This is a subscribe test message.");
+
+// Console.ReadLine();
+
+
+
+namespace RedisPractice
 {
-    Console.WriteLine((string)message);
-});
+   public class Program
+   {
+       public static async Task Main()
+       {
+           ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("127.0.0.1:6379");
+           IDatabase db = redis.GetDatabase(1);
 
-subscriber.Publish("subscribeTest", "This is a subscribe test message.");
+           await db.StringSetAsync("count", 0);
 
-Console.ReadLine();
+           var actions = new List<Action>();
 
+           for (int i = 0; i < 100; i++)
+           {
+               actions.Add(async () =>
+               {
+                   Program.CasAsync(() =>
+                   {
+                       var transaction = db.CreateTransaction();
+                       var result = db.StringGet("count");
+                       transaction.AddCondition(Condition.StringEqual("count", result));
+                       transaction.StringSetAsync("count", int.Parse(result) + 1);
+                       return transaction.Execute();
+                   });
+               });
+           }
 
+           Parallel.Invoke(actions.ToArray());
+           Thread.Sleep(5000);
 
-//namespace RedisPractice
-//{
-//    public class Program
-//    {
-//        public static async Task Main()
-//        {
-//            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("127.0.0.1:6379");
-//            IDatabase db = redis.GetDatabase(1);
+           var result = db.StringGet("count");
+           Console.WriteLine(result);
+       }
 
-//            await db.StringSetAsync("count", 0);
+       public static void CasAsync(Func<bool> action)
+       {
+           var retry = 0;
+           while (true)
+           {
+               try
+               {
+                   var result = action();
 
-//            var actions = new List<Action>();
+                   if (result)
+                   {
+                       return;
+                   }
+                   else
+                   {
+                       if (retry >= 100)
+                       {
+                           throw new Exception("Cas Exception!");
+                       }
+                   }
 
-//            for (int i = 0; i < 100; i++)
-//            {
-//                actions.Add(async () =>
-//                {
-//                    Program.CasAsync(() =>
-//                    {
-//                        var transaction = db.CreateTransaction();
-//                        var result = db.StringGet("count");
-//                        transaction.AddCondition(Condition.StringEqual("count", result));
-//                        transaction.StringSetAsync("count", int.Parse(result) + 1);
-//                        return transaction.Execute();
-//                    });
-//                });
-//            }
-
-//            Parallel.Invoke(actions.ToArray());
-//            Thread.Sleep(5000);
-
-//            var result = db.StringGet("count");
-//            Console.WriteLine(result);
-//        }
-
-//        public static void CasAsync(Func<bool> action)
-//        {
-//            var retry = 0;
-//            while (true)
-//            {
-//                try
-//                {
-//                    var result = action();
-
-//                    if (result)
-//                    {
-//                        return;
-//                    }
-//                    else
-//                    {
-//                        if (retry >= 100)
-//                        {
-//                            throw new Exception("Cas Exception!");
-//                        }
-//                    }
-
-//                    var delay = ++retry;
-//                    Thread.Sleep(delay);
-//                }
-//                catch (Exception ex)
-//                {
-//                    Console.WriteLine(ex.Message);
-//                }
-//            }
-//        }
-//    }
-//}
+                   var delay = ++retry;
+                   Thread.Sleep(delay);
+               }
+               catch (Exception ex)
+               {
+                   Console.WriteLine(ex.Message);
+               }
+           }
+       }
+   }
+}
 
 ////var result = db.StringGet("count");
 ////db.StringSet("count", int.Parse(result) + 1);

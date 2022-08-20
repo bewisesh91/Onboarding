@@ -19,27 +19,27 @@ namespace SendMessageToQueueExample
 
                 for (var i = 0; i < 16; i++)
                 {
-                    //actions.Add(async () =>
-                    //{
-                    //    var messageBody = "This is a sample message to send to SQSPractice.";
+                    actions.Add(async () =>
+                    {
+                       var messageBody = "This is a sample message to send to SQSPractice.";
 
-                    //    var request = new SendMessageRequest
-                    //    {
-                    //        MessageBody = messageBody,
-                    //        QueueUrl = queueUrl,
-                    //    };
+                       var request = new SendMessageRequest
+                       {
+                           MessageBody = messageBody,
+                           QueueUrl = queueUrl,
+                       };
 
-                    //    var sendResponse = await client.SendMessageAsync(request);
+                       var sendResponse = await client.SendMessageAsync(request);
 
-                    //    if (sendResponse.HttpStatusCode == System.Net.HttpStatusCode.OK)
-                    //    {
-                    //        Console.WriteLine($"Successfully sent message. Message ID: {sendResponse.MessageId}");
-                    //    }
-                    //    else
-                    //    {
-                    //        Console.WriteLine("Could not send message.");
-                    //    }
-                    //});
+                       if (sendResponse.HttpStatusCode == System.Net.HttpStatusCode.OK)
+                       {
+                           Console.WriteLine($"Successfully sent message. Message ID: {sendResponse.MessageId}");
+                       }
+                       else
+                       {
+                           Console.WriteLine("Could not send message.");
+                       }
+                    });
 
                     actions.Add(async () =>
                     {
